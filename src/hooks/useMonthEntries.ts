@@ -89,12 +89,19 @@ export function useAddIncomeEntry(periodId: string) {
   const queryClient = useQueryClient()
 
   return useMutation({
-    mutationFn: async (input: { name: string; amount: number; frequency: Frequency; is_extra: boolean }) => {
+    mutationFn: async (input: {
+      name: string
+      amount: number
+      frequency: Frequency
+      is_extra: boolean
+      member_id: string | null
+    }) => {
       if (!user) throw new Error('Not authenticated')
       const { error } = await supabase.from('monthly_income_entries').insert({
         monthly_period_id: periodId,
         user_id: user.id,
         recurring_item_id: null,
+        member_id: input.member_id,
         name: input.name,
         amount: input.amount,
         frequency: input.frequency,
@@ -118,22 +125,58 @@ export function useDeleteIncomeEntry(periodId: string) {
   })
 }
 
+export function useUpdateIncomeEntry(periodId: string) {
+  const queryClient = useQueryClient()
+
+  return useMutation({
+    mutationFn: async (input: {
+      id: string
+      name: string
+      amount: number
+      frequency: Frequency
+      member_id: string | null
+    }) => {
+      const { error } = await supabase
+        .from('monthly_income_entries')
+        .update({
+          name: input.name,
+          amount: input.amount,
+          frequency: input.frequency,
+          monthly_equivalent_amount: toMonthlyEquivalent(input.amount, input.frequency),
+          member_id: input.member_id,
+        })
+        .eq('id', input.id)
+      if (error) throw error
+    },
+    onSuccess: () => queryClient.invalidateQueries({ queryKey: incomeKey(periodId) }),
+  })
+}
+
 export function useAddExpenseEntry(periodId: string) {
   const { user } = useAuth()
   const queryClient = useQueryClient()
 
   return useMutation({
-    mutationFn: async (input: { name: string; category: string | null; amount: number; frequency: Frequency }) => {
+    mutationFn: async (input: {
+      name: string
+      category: string | null
+      amount: number
+      frequency: Frequency
+      member_id: string | null
+      color?: string | null
+    }) => {
       if (!user) throw new Error('Not authenticated')
       const { error } = await supabase.from('monthly_expense_entries').insert({
         monthly_period_id: periodId,
         user_id: user.id,
         recurring_item_id: null,
+        member_id: input.member_id,
         name: input.name,
         category: input.category,
         amount: input.amount,
         frequency: input.frequency,
         monthly_equivalent_amount: toMonthlyEquivalent(input.amount, input.frequency),
+        color: input.color ?? null,
       })
       if (error) throw error
     },
@@ -152,18 +195,51 @@ export function useDeleteExpenseEntry(periodId: string) {
   })
 }
 
+export function useUpdateExpenseEntry(periodId: string) {
+  const queryClient = useQueryClient()
+
+  return useMutation({
+    mutationFn: async (input: {
+      id: string
+      name: string
+      category: string | null
+      amount: number
+      frequency: Frequency
+      member_id: string | null
+      color?: string | null
+    }) => {
+      const { error } = await supabase
+        .from('monthly_expense_entries')
+        .update({
+          name: input.name,
+          category: input.category,
+          amount: input.amount,
+          frequency: input.frequency,
+          monthly_equivalent_amount: toMonthlyEquivalent(input.amount, input.frequency),
+          member_id: input.member_id,
+          color: input.color ?? null,
+        })
+        .eq('id', input.id)
+      if (error) throw error
+    },
+    onSuccess: () => queryClient.invalidateQueries({ queryKey: expenseKey(periodId) }),
+  })
+}
+
 export function useAddExpectedSpending(periodId: string) {
   const { user } = useAuth()
   const queryClient = useQueryClient()
 
   return useMutation({
-    mutationFn: async (input: { category: string; amount: number }) => {
+    mutationFn: async (input: { category: string; amount: number; member_id: string | null; color?: string | null }) => {
       if (!user) throw new Error('Not authenticated')
       const { error } = await supabase.from('monthly_expected_spending').insert({
         monthly_period_id: periodId,
         user_id: user.id,
+        member_id: input.member_id,
         category: input.category,
         amount: input.amount,
+        color: input.color ?? null,
       })
       if (error) throw error
     },
@@ -179,5 +255,49 @@ export function useDeleteExpectedSpending(periodId: string) {
       if (error) throw error
     },
     onSuccess: () => queryClient.invalidateQueries({ queryKey: spendingKey(periodId) }),
+  })
+}
+
+export function useUpdateExpectedSpending(periodId: string) {
+  const queryClient = useQueryClient()
+
+  return useMutation({
+    mutationFn: async (input: {
+      id: string
+      category: string
+      amount: number
+      member_id: string | null
+      color?: string | null
+    }) => {
+      const { error } = await supabase
+        .from('monthly_expected_spending')
+        .update({ category: input.category, amount: input.amount, member_id: input.member_id, color: input.color ?? null })
+        .eq('id', input.id)
+      if (error) throw error
+    },
+    onSuccess: () => queryClient.invalidateQueries({ queryKey: spendingKey(periodId) }),
+  })
+}
+
+/** Deletes every income, fixed-expense, and expected-spending entry for a month in one go. */
+export function useClearMonthEntries(periodId: string) {
+  const queryClient = useQueryClient()
+
+  return useMutation({
+    mutationFn: async () => {
+      const [incomeRes, expenseRes, spendingRes] = await Promise.all([
+        supabase.from('monthly_income_entries').delete().eq('monthly_period_id', periodId),
+        supabase.from('monthly_expense_entries').delete().eq('monthly_period_id', periodId),
+        supabase.from('monthly_expected_spending').delete().eq('monthly_period_id', periodId),
+      ])
+      if (incomeRes.error) throw incomeRes.error
+      if (expenseRes.error) throw expenseRes.error
+      if (spendingRes.error) throw spendingRes.error
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: incomeKey(periodId) })
+      queryClient.invalidateQueries({ queryKey: expenseKey(periodId) })
+      queryClient.invalidateQueries({ queryKey: spendingKey(periodId) })
+    },
   })
 }

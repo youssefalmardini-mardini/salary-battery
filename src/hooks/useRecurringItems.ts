@@ -29,6 +29,7 @@ export interface RecurringItemInput {
   category: string | null
   default_amount: number
   frequency: Frequency
+  member_id: string | null
 }
 
 export function useCreateRecurringItem() {

@@ -35,7 +35,7 @@
 /* Light theme only — no dark mode. Neutral grayscale palette plus a single
    muted accent (--savings) reserved for the calculated-savings figure. */
 :root {
-    --background: oklch(1 0 0);
+    --background: oklch(0.98 0.002 260);
     --foreground: oklch(0.145 0 0);
     --card: oklch(1 0 0);
     --card-foreground: oklch(0.145 0 0);

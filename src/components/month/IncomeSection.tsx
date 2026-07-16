@@ -1,76 +1,142 @@
 import { useState } from 'react'
-import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
+import { Link } from 'react-router-dom'
+import { PlusIcon } from 'lucide-react'
+import { Card, CardAction, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
 import { Button } from '@/components/ui/button'
-import { Input } from '@/components/ui/input'
-import { FrequencySelect } from '@/components/FrequencySelect'
-import { useAddIncomeEntry, useDeleteIncomeEntry, useIncomeEntries } from '@/hooks/useMonthEntries'
-import { formatEUR, type Frequency } from '@/lib/calculations'
+import { EntryCard, EntryGroup } from '@/components/month/EntryCard'
+import { EntryDialog } from '@/components/EntryDialog'
+import type { EntryEditorValues } from '@/components/EntryEditor'
+import { useHouseholdMembers } from '@/hooks/useHouseholdMembers'
+import { useAddIncomeEntry, useDeleteIncomeEntry, useIncomeEntries, useUpdateIncomeEntry } from '@/hooks/useMonthEntries'
+import { formatEUR } from '@/lib/calculations'
+import type { MonthlyIncomeEntry } from '@/lib/types'
+
+type DialogState = { mode: 'add' } | { mode: 'edit'; entry: MonthlyIncomeEntry } | null
 
 export function IncomeSection({ periodId }: { periodId: string }) {
   const { data: entries } = useIncomeEntries(periodId)
+  const { data: members } = useHouseholdMembers()
   const addEntry = useAddIncomeEntry(periodId)
+  const updateEntry = useUpdateIncomeEntry(periodId)
   const deleteEntry = useDeleteIncomeEntry(periodId)
 
-  const [name, setName] = useState('')
-  const [amount, setAmount] = useState('')
-  const [frequency, setFrequency] = useState<Frequency>('monthly')
+  const [dialogState, setDialogState] = useState<DialogState>(null)
 
-  async function handleAdd() {
-    const parsedAmount = Number(amount)
-    if (!name.trim() || !Number.isFinite(parsedAmount) || parsedAmount < 0) return
-    await addEntry.mutateAsync({
-      name: name.trim(),
-      amount: parsedAmount,
-      frequency,
-      is_extra: (entries?.length ?? 0) > 0,
-    })
-    setName('')
-    setAmount('')
-    setFrequency('monthly')
+  const personGroups = (members ?? [])
+    .map((member) => ({
+      member,
+      entries: (entries ?? []).filter((entry) => entry.member_id === member.id),
+    }))
+    .filter((group) => group.entries.length > 0)
+
+  const knownMemberIds = new Set((members ?? []).map((member) => member.id))
+  const unassignedEntries = (entries ?? []).filter((entry) => !knownMemberIds.has(entry.member_id as string))
+
+  function entrySubtitle(entry: MonthlyIncomeEntry) {
+    return `${formatEUR(entry.amount)} · ${entry.frequency}${entry.is_extra ? ' · extra' : ''}`
   }
+
+  async function handleSave(values: EntryEditorValues) {
+    if (!values.memberId) return
+    if (dialogState?.mode === 'edit') {
+      await updateEntry.mutateAsync({
+        id: dialogState.entry.id,
+        name: values.name,
+        amount: Number(values.amount),
+        frequency: values.frequency,
+        member_id: values.memberId,
+      })
+    } else {
+      const hasExistingForMember = (entries ?? []).some((entry) => entry.member_id === values.memberId)
+      await addEntry.mutateAsync({
+        name: values.name,
+        amount: Number(values.amount),
+        frequency: values.frequency,
+        member_id: values.memberId,
+        is_extra: hasExistingForMember,
+      })
+    }
+    setDialogState(null)
+  }
+
+  function renderEntry(entry: MonthlyIncomeEntry) {
+    return (
+      <EntryCard
+        key={entry.id}
+        title={entry.name}
+        subtitle={entrySubtitle(entry)}
+        trailing={`${formatEUR(entry.monthly_equivalent_amount)}/mo`}
+        onEdit={() => setDialogState({ mode: 'edit', entry })}
+        onDelete={() => deleteEntry.mutate(entry.id)}
+      />
+    )
+  }
+
+  const initialValues: EntryEditorValues =
+    dialogState?.mode === 'edit'
+      ? {
+          name: dialogState.entry.name,
+          category: '',
+          amount: String(dialogState.entry.amount),
+          frequency: dialogState.entry.frequency,
+          memberId: dialogState.entry.member_id,
+          color: null,
+        }
+      : { name: '', category: '', amount: '', frequency: 'monthly', memberId: null, color: null }
+
+  const noMembersYet = (members ?? []).length === 0
 
   return (
     <Card>
       <CardHeader>
         <CardTitle>Income</CardTitle>
+        {!noMembersYet && (
+          <CardAction>
+            <Button
+              variant="outline"
+              size="icon-sm"
+              onClick={() => setDialogState({ mode: 'add' })}
+              aria-label="Add income"
+            >
+              <PlusIcon />
+            </Button>
+          </CardAction>
+        )}
       </CardHeader>
-      <CardContent className="flex flex-col gap-3">
-        {(entries ?? []).map((entry) => (
-          <div key={entry.id} className="flex items-center justify-between gap-2 text-sm">
-            <div className="flex flex-col">
-              <span className="font-medium">{entry.name}</span>
-              <span className="text-muted-foreground">
-                {formatEUR(entry.amount)} · {entry.frequency}
-                {entry.is_extra ? ' · extra' : ''}
-              </span>
-            </div>
-            <div className="flex items-center gap-3">
-              <span className="text-muted-foreground">{formatEUR(entry.monthly_equivalent_amount)}/mo</span>
-              <Button variant="ghost" size="icon-sm" onClick={() => deleteEntry.mutate(entry.id)} aria-label="Remove">
-                ×
-              </Button>
-            </div>
-          </div>
+      <CardContent className="flex flex-col gap-4">
+        {personGroups.map(({ member, entries: memberEntries }) => (
+          <EntryGroup key={member.id} title={member.name}>
+            {memberEntries.map((entry) => renderEntry(entry))}
+          </EntryGroup>
         ))}
 
-        <div className="mt-2 grid grid-cols-1 gap-2 sm:grid-cols-[1fr_auto_auto_auto]">
-          <Input placeholder="Source (e.g. Salary)" value={name} onChange={(e) => setName(e.target.value)} />
-          <Input
-            type="number"
-            inputMode="decimal"
-            placeholder="Amount"
-            className="sm:w-28"
-            value={amount}
-            onChange={(e) => setAmount(e.target.value)}
-          />
-          <div className="sm:w-36">
-            <FrequencySelect value={frequency} onChange={setFrequency} />
-          </div>
-          <Button onClick={handleAdd} disabled={addEntry.isPending}>
-            Add
-          </Button>
-        </div>
+        {unassignedEntries.length > 0 && (
+          <EntryGroup title="Unassigned">{unassignedEntries.map((entry) => renderEntry(entry))}</EntryGroup>
+        )}
+
+        {noMembersYet ? (
+          <p className="text-sm text-muted-foreground">
+            <Link to="/household" className="font-medium text-foreground underline underline-offset-4">
+              Add a household member
+            </Link>{' '}
+            first to start entering income.
+          </p>
+        ) : (
+          (entries ?? []).length === 0 && <p className="text-sm text-muted-foreground">Nothing added yet.</p>
+        )}
       </CardContent>
+
+      <EntryDialog
+        open={dialogState !== null}
+        onOpenChange={(open) => !open && setDialogState(null)}
+        title={dialogState?.mode === 'edit' ? 'Edit income' : 'Add income'}
+        initial={initialValues}
+        showName
+        showFrequency
+        requireMember
+        isSaving={dialogState?.mode === 'edit' ? updateEntry.isPending : addEntry.isPending}
+        onSave={handleSave}
+      />
     </Card>
   )
 }

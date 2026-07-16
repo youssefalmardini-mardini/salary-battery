@@ -11,6 +11,7 @@ node_modules
 dist
 dist-ssr
 *.local
+passwords
 
 # Editor directories and files
 .vscode/*

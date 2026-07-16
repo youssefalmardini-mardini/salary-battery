@@ -1,0 +1,17 @@
+export const PASTEL_COLORS = [
+  { value: '#fde2e2', label: 'Rose' },
+  { value: '#fee2e2', label: 'Red' },
+  { value: '#ffe4d5', label: 'Peach' },
+  { value: '#fef3c7', label: 'Amber' },
+  { value: '#fef9c3', label: 'Yellow' },
+  { value: '#d9f7be', label: 'Lime' },
+  { value: '#d1fae5', label: 'Mint' },
+  { value: '#ccfbf1', label: 'Teal' },
+  { value: '#dbeafe', label: 'Sky' },
+  { value: '#bfdbfe', label: 'Blue' },
+  { value: '#e0e7ff', label: 'Indigo' },
+  { value: '#ede9fe', label: 'Lavender' },
+  { value: '#f3e8ff', label: 'Purple' },
+  { value: '#fce7f3', label: 'Pink' },
+  { value: '#e5e7eb', label: 'Gray' },
+]

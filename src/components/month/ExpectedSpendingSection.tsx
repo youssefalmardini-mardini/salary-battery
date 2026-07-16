@@ -1,60 +1,136 @@
 import { useState } from 'react'
-import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
+import { PlusIcon } from 'lucide-react'
+import { Card, CardAction, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
 import { Button } from '@/components/ui/button'
-import { Input } from '@/components/ui/input'
-import { CategoryInput } from '@/components/CategoryInput'
-import { useAddExpectedSpending, useDeleteExpectedSpending, useExpectedSpending } from '@/hooks/useMonthEntries'
+import { EntryCard, EntryGroup } from '@/components/month/EntryCard'
+import { EntryDialog } from '@/components/EntryDialog'
+import type { EntryEditorValues } from '@/components/EntryEditor'
+import { useHouseholdMembers } from '@/hooks/useHouseholdMembers'
+import {
+  useAddExpectedSpending,
+  useDeleteExpectedSpending,
+  useExpectedSpending,
+  useUpdateExpectedSpending,
+} from '@/hooks/useMonthEntries'
 import { formatEUR } from '@/lib/calculations'
+import type { MonthlyExpectedSpending } from '@/lib/types'
+
+type DialogState = { mode: 'add' } | { mode: 'edit'; entry: MonthlyExpectedSpending } | null
 
 export function ExpectedSpendingSection({ periodId }: { periodId: string }) {
   const { data: entries } = useExpectedSpending(periodId)
+  const { data: members } = useHouseholdMembers()
   const addEntry = useAddExpectedSpending(periodId)
+  const updateEntry = useUpdateExpectedSpending(periodId)
   const deleteEntry = useDeleteExpectedSpending(periodId)
 
-  const [category, setCategory] = useState('')
-  const [amount, setAmount] = useState('')
+  const [dialogState, setDialogState] = useState<DialogState>(null)
 
-  async function handleAdd() {
-    const parsedAmount = Number(amount)
-    if (!category.trim() || !Number.isFinite(parsedAmount) || parsedAmount < 0) return
-    await addEntry.mutateAsync({ category: category.trim(), amount: parsedAmount })
-    setCategory('')
-    setAmount('')
+  const sharedEntries = (entries ?? []).filter((entry) => entry.member_id === null)
+  const personalEntries = (entries ?? []).filter((entry) => entry.member_id !== null)
+
+  const personGroups = (members ?? [])
+    .map((member) => ({
+      member,
+      entries: personalEntries.filter((entry) => entry.member_id === member.id),
+    }))
+    .filter((group) => group.entries.length > 0)
+
+  const knownMemberIds = new Set((members ?? []).map((member) => member.id))
+  const unassignedEntries = personalEntries.filter(
+    (entry) => !knownMemberIds.has(entry.member_id as string),
+  )
+
+  async function handleSave(values: EntryEditorValues) {
+    if (dialogState?.mode === 'edit') {
+      await updateEntry.mutateAsync({
+        id: dialogState.entry.id,
+        category: values.category,
+        amount: Number(values.amount),
+        member_id: values.memberId,
+        color: values.color,
+      })
+    } else {
+      await addEntry.mutateAsync({
+        category: values.category,
+        amount: Number(values.amount),
+        member_id: values.memberId,
+        color: values.color,
+      })
+    }
+    setDialogState(null)
   }
+
+  function renderEntry(entry: MonthlyExpectedSpending) {
+    return (
+      <EntryCard
+        key={entry.id}
+        title={entry.category}
+        trailing={formatEUR(entry.amount)}
+        accentColor={entry.color}
+        onEdit={() => setDialogState({ mode: 'edit', entry })}
+        onDelete={() => deleteEntry.mutate(entry.id)}
+      />
+    )
+  }
+
+  const initialValues: EntryEditorValues =
+    dialogState?.mode === 'edit'
+      ? {
+          name: '',
+          category: dialogState.entry.category,
+          amount: String(dialogState.entry.amount),
+          frequency: 'monthly',
+          memberId: dialogState.entry.member_id,
+          color: dialogState.entry.color,
+        }
+      : { name: '', category: '', amount: '', frequency: 'monthly', memberId: null, color: null }
 
   return (
     <Card>
       <CardHeader>
         <CardTitle>Expected spending</CardTitle>
+        <CardAction>
+          <Button
+            variant="outline"
+            size="icon-sm"
+            onClick={() => setDialogState({ mode: 'add' })}
+            aria-label="Add expected spending"
+          >
+            <PlusIcon />
+          </Button>
+        </CardAction>
       </CardHeader>
-      <CardContent className="flex flex-col gap-3">
-        {(entries ?? []).map((entry) => (
-          <div key={entry.id} className="flex items-center justify-between gap-2 text-sm">
-            <span className="font-medium">{entry.category}</span>
-            <div className="flex items-center gap-3">
-              <span className="text-muted-foreground">{formatEUR(entry.amount)}</span>
-              <Button variant="ghost" size="icon-sm" onClick={() => deleteEntry.mutate(entry.id)} aria-label="Remove">
-                ×
-              </Button>
-            </div>
-          </div>
+      <CardContent className="flex flex-col gap-4">
+        {sharedEntries.length > 0 && (
+          <EntryGroup title="Shared">{sharedEntries.map((entry) => renderEntry(entry))}</EntryGroup>
+        )}
+
+        {personGroups.map(({ member, entries: memberEntries }) => (
+          <EntryGroup key={member.id} title={member.name}>
+            {memberEntries.map((entry) => renderEntry(entry))}
+          </EntryGroup>
         ))}
 
-        <div className="mt-2 grid grid-cols-1 gap-2 sm:grid-cols-[1fr_auto_auto]">
-          <CategoryInput value={category} onChange={setCategory} placeholder="Category (e.g. Groceries)" />
-          <Input
-            type="number"
-            inputMode="decimal"
-            placeholder="Amount"
-            className="sm:w-28"
-            value={amount}
-            onChange={(e) => setAmount(e.target.value)}
-          />
-          <Button onClick={handleAdd} disabled={addEntry.isPending}>
-            Add
-          </Button>
-        </div>
+        {unassignedEntries.length > 0 && (
+          <EntryGroup title="Unassigned">{unassignedEntries.map((entry) => renderEntry(entry))}</EntryGroup>
+        )}
+
+        {(entries ?? []).length === 0 && <p className="text-sm text-muted-foreground">Nothing added yet.</p>}
       </CardContent>
+
+      <EntryDialog
+        open={dialogState !== null}
+        onOpenChange={(open) => !open && setDialogState(null)}
+        title={dialogState?.mode === 'edit' ? 'Edit expected spending' : 'Add expected spending'}
+        initial={initialValues}
+        showCategory
+        requireCategory
+        showColor
+        allowShared
+        isSaving={dialogState?.mode === 'edit' ? updateEntry.isPending : addEntry.isPending}
+        onSave={handleSave}
+      />
     </Card>
   )
 }

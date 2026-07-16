@@ -2,6 +2,14 @@ import type { Frequency } from '@/lib/calculations'
 
 export type RecurringItemType = 'income' | 'fixed_expense'
 
+export interface HouseholdMember {
+  id: string
+  user_id: string
+  name: string
+  created_at: string
+  updated_at: string
+}
+
 export interface RecurringItem {
   id: string
   user_id: string
@@ -11,6 +19,7 @@ export interface RecurringItem {
   default_amount: number
   frequency: Frequency
   is_active: boolean
+  member_id: string | null
   created_at: string
   updated_at: string
 }
@@ -31,6 +40,7 @@ export interface MonthlyIncomeEntry {
   monthly_period_id: string
   user_id: string
   recurring_item_id: string | null
+  member_id: string | null
   name: string
   amount: number
   frequency: Frequency
@@ -44,11 +54,13 @@ export interface MonthlyExpenseEntry {
   monthly_period_id: string
   user_id: string
   recurring_item_id: string | null
+  member_id: string | null
   name: string
   category: string | null
   amount: number
   frequency: Frequency
   monthly_equivalent_amount: number
+  color: string | null
   created_at: string
 }
 
@@ -56,7 +68,9 @@ export interface MonthlyExpectedSpending {
   id: string
   monthly_period_id: string
   user_id: string
+  member_id: string | null
   category: string
   amount: number
+  color: string | null
   created_at: string
 }
