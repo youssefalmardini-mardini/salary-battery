@@ -12,7 +12,7 @@ import {
   useExpenseEntries,
   useUpdateExpenseEntry,
 } from '@/hooks/useMonthEntries'
-import { formatEUR } from '@/lib/calculations'
+import { useCurrencyFormatter } from '@/hooks/useCurrency'
 import type { MonthlyExpenseEntry } from '@/lib/types'
 
 type DialogState = { mode: 'add' } | { mode: 'edit'; entry: MonthlyExpenseEntry } | null
@@ -20,6 +20,7 @@ type DialogState = { mode: 'add' } | { mode: 'edit'; entry: MonthlyExpenseEntry 
 export function FixedExpensesSection({ periodId }: { periodId: string }) {
   const { data: entries } = useExpenseEntries(periodId)
   const { data: members } = useHouseholdMembers()
+  const format = useCurrencyFormatter()
   const addEntry = useAddExpenseEntry(periodId)
   const updateEntry = useUpdateExpenseEntry(periodId)
   const deleteEntry = useDeleteExpenseEntry(periodId)
@@ -42,7 +43,7 @@ export function FixedExpensesSection({ periodId }: { periodId: string }) {
   )
 
   function entrySubtitle(entry: MonthlyExpenseEntry) {
-    return `${formatEUR(entry.amount)} · ${entry.frequency}${entry.category ? ` · ${entry.category}` : ''}`
+    return `${format(entry.amount)} · ${entry.frequency}${entry.category ? ` · ${entry.category}` : ''}`
   }
 
   async function handleSave(values: EntryEditorValues) {
@@ -75,7 +76,7 @@ export function FixedExpensesSection({ periodId }: { periodId: string }) {
         key={entry.id}
         title={entry.name}
         subtitle={entrySubtitle(entry)}
-        trailing={`${formatEUR(entry.monthly_equivalent_amount)}/mo`}
+        trailing={`${format(entry.monthly_equivalent_amount)}/mo`}
         accentColor={entry.color}
         onEdit={() => setDialogState({ mode: 'edit', entry })}
         onDelete={() => deleteEntry.mutate(entry.id)}

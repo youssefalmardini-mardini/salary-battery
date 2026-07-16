@@ -11,6 +11,7 @@ const NAV_LINKS = [
   { to: '/', label: 'Dashboard', end: true },
   { to: '/household', label: 'Household', end: false },
   { to: '/recurring', label: 'Recurring items', end: false },
+  { to: '/settings', label: 'Settings', end: false },
 ]
 
 export function AppShell({ children }: { children: ReactNode }) {

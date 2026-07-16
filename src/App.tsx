@@ -8,6 +8,7 @@ import { DashboardPage } from '@/pages/DashboardPage'
 import { MonthDetailPage } from '@/pages/MonthDetailPage'
 import { RecurringItemsPage } from '@/pages/RecurringItemsPage'
 import { HouseholdPage } from '@/pages/HouseholdPage'
+import { SettingsPage } from '@/pages/SettingsPage'
 
 const queryClient = new QueryClient()
 
@@ -24,6 +25,7 @@ function App() {
               <Route path="/month/:year/:month" element={<MonthDetailPage />} />
               <Route path="/recurring" element={<RecurringItemsPage />} />
               <Route path="/household" element={<HouseholdPage />} />
+              <Route path="/settings" element={<SettingsPage />} />
             </Route>
             <Route path="*" element={<Navigate to="/" replace />} />
           </Routes>

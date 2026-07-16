@@ -6,7 +6,8 @@ import { Card, CardContent } from '@/components/ui/card'
 import { BatteryBadge } from '@/components/BatteryBadge'
 import { useYearOverview } from '@/hooks/useYearOverview'
 import { useHouseholdMembers } from '@/hooks/useHouseholdMembers'
-import { formatEUR, MONTH_NAMES } from '@/lib/calculations'
+import { useCurrencyFormatter } from '@/hooks/useCurrency'
+import { MONTH_NAMES } from '@/lib/calculations'
 import { cn } from '@/lib/utils'
 
 export function DashboardPage() {
@@ -15,6 +16,7 @@ export function DashboardPage() {
   const navigate = useNavigate()
   const { data: overview, isLoading, isError, refetch, isRefetching } = useYearOverview(year)
   const { data: members } = useHouseholdMembers()
+  const format = useCurrencyFormatter()
 
   function memberName(id: string | null) {
     return members?.find((member) => member.id === id)?.name ?? 'Unassigned'
@@ -66,7 +68,7 @@ export function DashboardPage() {
                       className={cn('text-lg font-semibold', totals.calculatedSavings < 0 && 'text-destructive')}
                       style={totals.calculatedSavings >= 0 ? { color: 'var(--savings)' } : undefined}
                     >
-                      {formatEUR(totals.calculatedSavings)}
+                      {format(totals.calculatedSavings)}
                     </span>
                   ) : (
                     <span className="text-sm text-muted-foreground">No data yet</span>
@@ -82,10 +84,10 @@ export function DashboardPage() {
                           <span className="truncate">{memberName(person.memberId)}</span>
                           <span className="shrink-0 whitespace-nowrap">
                             <span style={{ color: person.savings >= 0 ? 'var(--savings)' : 'var(--destructive)' }}>
-                              {formatEUR(person.savings)}
+                              {format(person.savings)}
                             </span>
                             {' · '}
-                            {formatEUR(person.privateCosts + person.sharedContribution)}
+                            {format(person.privateCosts + person.sharedContribution)}
                           </span>
                         </div>
                       ))}

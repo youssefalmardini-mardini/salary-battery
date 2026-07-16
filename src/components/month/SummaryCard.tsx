@@ -4,7 +4,8 @@ import { Separator } from '@/components/ui/separator'
 import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
 import { Button } from '@/components/ui/button'
-import { formatEUR, type MonthlyTotals } from '@/lib/calculations'
+import { useCurrencyFormatter } from '@/hooks/useCurrency'
+import type { MonthlyTotals } from '@/lib/calculations'
 import type { MonthlyPeriod } from '@/lib/types'
 
 export function SummaryCard({
@@ -18,6 +19,7 @@ export function SummaryCard({
   onSaveActual: (amount: number | null) => void
   isSaving: boolean
 }) {
+  const format = useCurrencyFormatter()
   const [actualSaved, setActualSaved] = useState(period.actual_saved_amount?.toString() ?? '')
 
   function handleSave() {
@@ -36,9 +38,9 @@ export function SummaryCard({
         <CardTitle>Summary</CardTitle>
       </CardHeader>
       <CardContent className="flex flex-col gap-2 text-sm">
-        <Row label="Total income" value={formatEUR(totals.totalIncome)} />
-        <Row label="Fixed payments" value={`− ${formatEUR(totals.totalFixed)}`} />
-        <Row label="Expected spending" value={`− ${formatEUR(totals.totalExpectedSpending)}`} />
+        <Row label="Total income" value={format(totals.totalIncome)} />
+        <Row label="Fixed payments" value={`− ${format(totals.totalFixed)}`} />
+        <Row label="Expected spending" value={`− ${format(totals.totalExpectedSpending)}`} />
         <Separator className="my-2" />
         <div className="flex items-center justify-between">
           <span className="font-medium">You can save this month</span>
@@ -46,7 +48,7 @@ export function SummaryCard({
             className="text-2xl font-semibold"
             style={{ color: totals.calculatedSavings >= 0 ? 'var(--savings)' : 'var(--destructive)' }}
           >
-            {formatEUR(totals.calculatedSavings)}
+            {format(totals.calculatedSavings)}
           </span>
         </div>
 
@@ -69,7 +71,7 @@ export function SummaryCard({
         </div>
         {period.actual_saved_amount !== null && (
           <p className="text-muted-foreground">
-            Planned vs. actual: {formatEUR(totals.calculatedSavings - period.actual_saved_amount)} difference
+            Planned vs. actual: {format(totals.calculatedSavings - period.actual_saved_amount)} difference
           </p>
         )}
       </CardContent>

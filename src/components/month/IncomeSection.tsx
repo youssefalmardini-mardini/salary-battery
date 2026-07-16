@@ -8,7 +8,7 @@ import { EntryDialog } from '@/components/EntryDialog'
 import type { EntryEditorValues } from '@/components/EntryEditor'
 import { useHouseholdMembers } from '@/hooks/useHouseholdMembers'
 import { useAddIncomeEntry, useDeleteIncomeEntry, useIncomeEntries, useUpdateIncomeEntry } from '@/hooks/useMonthEntries'
-import { formatEUR } from '@/lib/calculations'
+import { useCurrencyFormatter } from '@/hooks/useCurrency'
 import type { MonthlyIncomeEntry } from '@/lib/types'
 
 type DialogState = { mode: 'add' } | { mode: 'edit'; entry: MonthlyIncomeEntry } | null
@@ -16,6 +16,7 @@ type DialogState = { mode: 'add' } | { mode: 'edit'; entry: MonthlyIncomeEntry }
 export function IncomeSection({ periodId }: { periodId: string }) {
   const { data: entries } = useIncomeEntries(periodId)
   const { data: members } = useHouseholdMembers()
+  const format = useCurrencyFormatter()
   const addEntry = useAddIncomeEntry(periodId)
   const updateEntry = useUpdateIncomeEntry(periodId)
   const deleteEntry = useDeleteIncomeEntry(periodId)
@@ -33,7 +34,7 @@ export function IncomeSection({ periodId }: { periodId: string }) {
   const unassignedEntries = (entries ?? []).filter((entry) => !knownMemberIds.has(entry.member_id as string))
 
   function entrySubtitle(entry: MonthlyIncomeEntry) {
-    return `${formatEUR(entry.amount)} · ${entry.frequency}${entry.is_extra ? ' · extra' : ''}`
+    return `${format(entry.amount)} · ${entry.frequency}${entry.is_extra ? ' · extra' : ''}`
   }
 
   async function handleSave(values: EntryEditorValues) {
@@ -65,7 +66,7 @@ export function IncomeSection({ periodId }: { periodId: string }) {
         key={entry.id}
         title={entry.name}
         subtitle={entrySubtitle(entry)}
-        trailing={`${formatEUR(entry.monthly_equivalent_amount)}/mo`}
+        trailing={`${format(entry.monthly_equivalent_amount)}/mo`}
         onEdit={() => setDialogState({ mode: 'edit', entry })}
         onDelete={() => deleteEntry.mutate(entry.id)}
       />

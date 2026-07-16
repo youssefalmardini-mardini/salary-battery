@@ -1,3 +1,5 @@
+import { localeForCurrency } from '@/lib/currencies'
+
 export type Frequency = 'monthly' | 'weekly' | 'biweekly' | 'yearly'
 
 const MONTHLY_MULTIPLIER: Record<Frequency, number> = {
@@ -99,13 +101,18 @@ export function calculatePersonBreakdown(input: {
   return { perPerson, totalSharedCosts }
 }
 
-const EUR_FORMATTER = new Intl.NumberFormat('nl-NL', {
-  style: 'currency',
-  currency: 'EUR',
-})
+const formatterCache = new Map<string, Intl.NumberFormat>()
 
-export function formatEUR(value: number): string {
-  return EUR_FORMATTER.format(value)
+export function formatCurrency(value: number, currencyCode: string): string {
+  let formatter = formatterCache.get(currencyCode)
+  if (!formatter) {
+    formatter = new Intl.NumberFormat(localeForCurrency(currencyCode), {
+      style: 'currency',
+      currency: currencyCode,
+    })
+    formatterCache.set(currencyCode, formatter)
+  }
+  return formatter.format(value)
 }
 
 export const MONTH_NAMES = [

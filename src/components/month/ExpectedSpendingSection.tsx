@@ -12,7 +12,7 @@ import {
   useExpectedSpending,
   useUpdateExpectedSpending,
 } from '@/hooks/useMonthEntries'
-import { formatEUR } from '@/lib/calculations'
+import { useCurrencyFormatter } from '@/hooks/useCurrency'
 import type { MonthlyExpectedSpending } from '@/lib/types'
 
 type DialogState = { mode: 'add' } | { mode: 'edit'; entry: MonthlyExpectedSpending } | null
@@ -20,6 +20,7 @@ type DialogState = { mode: 'add' } | { mode: 'edit'; entry: MonthlyExpectedSpend
 export function ExpectedSpendingSection({ periodId }: { periodId: string }) {
   const { data: entries } = useExpectedSpending(periodId)
   const { data: members } = useHouseholdMembers()
+  const format = useCurrencyFormatter()
   const addEntry = useAddExpectedSpending(periodId)
   const updateEntry = useUpdateExpectedSpending(periodId)
   const deleteEntry = useDeleteExpectedSpending(periodId)
@@ -66,7 +67,7 @@ export function ExpectedSpendingSection({ periodId }: { periodId: string }) {
       <EntryCard
         key={entry.id}
         title={entry.category}
-        trailing={formatEUR(entry.amount)}
+        trailing={format(entry.amount)}
         accentColor={entry.color}
         onEdit={() => setDialogState({ mode: 'edit', entry })}
         onDelete={() => deleteEntry.mutate(entry.id)}

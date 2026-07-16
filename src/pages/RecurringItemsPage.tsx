@@ -15,7 +15,7 @@ import {
   useRecurringItems,
   useUpdateRecurringItem,
 } from '@/hooks/useRecurringItems'
-import { formatEUR } from '@/lib/calculations'
+import { useCurrencyFormatter } from '@/hooks/useCurrency'
 import type { RecurringItem, RecurringItemType } from '@/lib/types'
 
 export function RecurringItemsPage() {
@@ -47,6 +47,7 @@ type DialogState = { mode: 'add' } | { mode: 'edit'; item: RecurringItem } | nul
 function RecurringItemsList({ type }: { type: RecurringItemType }) {
   const { data: items } = useRecurringItems()
   const { data: members } = useHouseholdMembers()
+  const format = useCurrencyFormatter()
   const createItem = useCreateRecurringItem()
   const updateItem = useUpdateRecurringItem()
   const deleteItem = useDeleteRecurringItem()
@@ -90,7 +91,7 @@ function RecurringItemsList({ type }: { type: RecurringItemType }) {
       <EntryCard
         key={item.id}
         title={item.is_active ? item.name : `${item.name} (inactive)`}
-        subtitle={`${memberLabel(item.member_id)} · ${formatEUR(item.default_amount)} · ${item.frequency}${item.category ? ` · ${item.category}` : ''}`}
+        subtitle={`${memberLabel(item.member_id)} · ${format(item.default_amount)} · ${item.frequency}${item.category ? ` · ${item.category}` : ''}`}
         extra={
           <Button
             variant="outline"

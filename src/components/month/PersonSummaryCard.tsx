@@ -1,6 +1,7 @@
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
 import { Separator } from '@/components/ui/separator'
-import { formatEUR, type PersonBreakdown } from '@/lib/calculations'
+import { useCurrencyFormatter } from '@/hooks/useCurrency'
+import type { PersonBreakdown } from '@/lib/calculations'
 import type { HouseholdMember } from '@/lib/types'
 
 export function PersonSummaryCard({
@@ -12,6 +13,8 @@ export function PersonSummaryCard({
   members: HouseholdMember[]
   title?: string
 }) {
+  const format = useCurrencyFormatter()
+
   if (breakdown.perPerson.length === 0) return null
 
   function memberName(id: string | null) {
@@ -27,19 +30,19 @@ export function PersonSummaryCard({
         {breakdown.perPerson.map((person) => (
           <div key={person.memberId ?? 'unassigned'} className="flex flex-col gap-1">
             <span className="font-medium">{memberName(person.memberId)}</span>
-            <Row label="Income" value={formatEUR(person.income)} />
-            <Row label="Private costs" value={`− ${formatEUR(person.privateCosts)}`} />
-            <Row label="Transfer to shared" value={`− ${formatEUR(person.sharedContribution)}`} />
+            <Row label="Income" value={format(person.income)} />
+            <Row label="Private costs" value={`− ${format(person.privateCosts)}`} />
+            <Row label="Transfer to shared" value={`− ${format(person.sharedContribution)}`} />
             <div className="flex items-center justify-between font-medium">
               <span>Can save</span>
               <span style={{ color: person.savings >= 0 ? 'var(--savings)' : 'var(--destructive)' }}>
-                {formatEUR(person.savings)}
+                {format(person.savings)}
               </span>
             </div>
             <Separator className="mt-2" />
           </div>
         ))}
-        <Row label="Total shared costs" value={formatEUR(breakdown.totalSharedCosts)} />
+        <Row label="Total shared costs" value={format(breakdown.totalSharedCosts)} />
       </CardContent>
     </Card>
   )
