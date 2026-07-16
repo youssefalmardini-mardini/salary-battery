@@ -84,12 +84,12 @@ export function MonthDetailPage() {
 
   return (
     <AppShell>
-      <div className="mb-6 flex items-center justify-between">
+      <div className="mb-6 flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
         <div>
           <Link to="/" className="text-sm text-muted-foreground hover:text-foreground">
             ← Dashboard
           </Link>
-          <div className="flex items-center gap-2">
+          <div className="flex flex-wrap items-center gap-2">
             <h1 className="font-heading text-xl font-medium">
               {MONTH_NAMES[month - 1]} {year}
             </h1>
@@ -102,8 +102,8 @@ export function MonthDetailPage() {
           </div>
         </div>
         {period && (
-          <div className="flex flex-col items-end gap-1">
-            <div className="flex items-center gap-2">
+          <div className="flex flex-col gap-1 sm:items-end">
+            <div className="flex flex-wrap items-center gap-2">
               <Button
                 variant="outline"
                 size="sm"

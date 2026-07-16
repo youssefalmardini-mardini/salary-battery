@@ -5,6 +5,7 @@ import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
+import { AppLogo } from '@/components/AppLogo'
 
 export function SignupPage() {
   const { session, signUpWithPassword } = useAuth()
@@ -43,7 +44,11 @@ export function SignupPage() {
   }
 
   return (
-    <div className="flex min-h-svh items-center justify-center bg-background px-4">
+    <div className="flex min-h-svh flex-col items-center justify-center gap-6 bg-background px-4">
+      <div className="flex flex-col items-center gap-2">
+        <AppLogo className="h-16 w-24 text-foreground" />
+        <span className="font-heading text-lg font-medium">Salary Battery</span>
+      </div>
       <Card className="w-full max-w-sm">
         <CardHeader>
           <CardTitle className="text-xl">Create an account</CardTitle>
